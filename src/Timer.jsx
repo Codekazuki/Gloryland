@@ -35,10 +35,9 @@ export default function Timer() {
   const [seconds, setSeconds] = useState(10);
   const [remaining, setRemaining] = useState(0);
   const [totalSecs, setTotalSecs] = useState(0);
-  const [status, setStatus] = useState("idle"); // idle | running | paused | alarm
+  const [status, setStatus] = useState("idle");
   const intervalRef = useRef(null);
   const alertIntervalRef = useRef(null);
-  // ✅ Ref so the tick closure can check synchronously whether we're still active
   const activeRef = useRef(false);
   const beep = useBeep();
 
@@ -57,7 +56,6 @@ export default function Timer() {
   const dispS = remaining % 60;
   const progressPct = totalSecs > 0 ? (remaining / totalSecs) * 100 : 100;
 
-  // ✅ stopAlarm flips activeRef first so any in-flight tick won't re-trigger the alarm
   const stopAlarm = useCallback(() => {
     activeRef.current = false;
     clearInterval(alertIntervalRef.current);
@@ -90,7 +88,6 @@ export default function Timer() {
   }, [stopAlarm, remaining]);
 
   const handlePause = useCallback(() => {
-    // ✅ Flip activeRef first so the tick won't call triggerAlarm after this
     activeRef.current = false;
     clearInterval(intervalRef.current);
     stopAlarm();
@@ -98,7 +95,6 @@ export default function Timer() {
   }, [stopAlarm]);
 
   const handleReset = useCallback(() => {
-    // ✅ Flip activeRef first
     activeRef.current = false;
     clearInterval(intervalRef.current);
     stopAlarm();
@@ -113,7 +109,6 @@ export default function Timer() {
     setTotalSecs((prev) => (prev !== 0 ? 0 : prev));
   }, []);
 
-  // Tick effect
   useEffect(() => {
     if (status !== "running") {
       clearInterval(intervalRef.current);
@@ -124,7 +119,6 @@ export default function Timer() {
       setRemaining((prev) => {
         if (prev <= 1) {
           clearInterval(intervalRef.current);
-          // ✅ Only fire alarm if activeRef is still true (not reset/paused mid-tick)
           if (activeRef.current) {
             activeRef.current = false;
             triggerAlarm();
@@ -138,7 +132,6 @@ export default function Timer() {
     return () => clearInterval(intervalRef.current);
   }, [status, triggerAlarm]);
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
       activeRef.current = false;
@@ -167,6 +160,7 @@ export default function Timer() {
         borderRadius: 12,
         fontFamily: "'Syne', 'Segoe UI', sans-serif",
         transition: "background 0.6s ease",
+        position: "relative",
       }}
     >
       <style>{`
@@ -183,14 +177,66 @@ export default function Timer() {
           0%, 100% { opacity: 1; }
           50%       { opacity: 0.2; }
         }
-        @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(6px); }
-          to   { opacity: 1; transform: translateY(0); }
+        @keyframes alarmPop {
+          0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.7); }
+          60%  { opacity: 1; transform: translate(-50%, -50%) scale(1.05); }
+          100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+        }
+        @keyframes pulseBanner {
+          0%, 100% { opacity: 1; }
+          50%       { opacity: 0.75; }
         }
         .digit-block input[type=number]::-webkit-outer-spin-button,
         .digit-block input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; }
         .digit-block input[type=number] { -moz-appearance: textfield; }
       `}</style>
+
+      {/* Fullscreen alarm overlay */}
+      {isDanger && (
+        <div
+          style={{
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            zIndex: 10,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: "1rem",
+            animation: "alarmPop 0.5s cubic-bezier(0.34,1.56,0.64,1) forwards",
+            textAlign: "center",
+            width: "90%",
+          }}
+        >
+          <div style={{ fontSize: 72, lineHeight: 1 }}>⏰</div>
+          <div
+            style={{
+              fontFamily: "'Syne', sans-serif",
+              fontSize: 48,
+              fontWeight: 800,
+              color: "#fff",
+              lineHeight: 1.1,
+              letterSpacing: "-0.02em",
+              animation: "pulseBanner 1.2s ease-in-out infinite",
+              textShadow: "0 2px 24px rgba(0,0,0,0.3)",
+            }}
+          >
+            TIME IS UP!
+          </div>
+          <div
+            style={{
+              fontSize: 14,
+              fontWeight: 700,
+              color: "rgba(255,255,255,0.7)",
+              letterSpacing: "0.2em",
+              textTransform: "uppercase",
+            }}
+          >
+            Press Reset to dismiss
+          </div>
+        </div>
+      )}
 
       {/* Title */}
       <div
@@ -199,7 +245,9 @@ export default function Timer() {
           fontWeight: 900,
           letterSpacing: "0.2em",
           textTransform: "uppercase",
-          color: isDanger ? "#F7C1C1" : "var(--color-text-secondary, #888)",
+          color: isDanger
+            ? "rgba(255,255,255,0.2)"
+            : "var(--color-text-secondary, #888)",
           marginBottom: "2rem",
           transition: "color 0.4s",
         }}
@@ -214,6 +262,8 @@ export default function Timer() {
           alignItems: "center",
           gap: 4,
           marginBottom: "2.5rem",
+          opacity: isDanger ? 0.15 : 1,
+          transition: "opacity 0.4s",
         }}
       >
         {[
@@ -305,6 +355,8 @@ export default function Timer() {
           borderRadius: 99,
           overflow: "hidden",
           marginBottom: "1.5rem",
+          opacity: isDanger ? 0.15 : 1,
+          transition: "opacity 0.4s",
         }}
       >
         <div
@@ -327,6 +379,9 @@ export default function Timer() {
           gap: "1rem",
           width: "100%",
           maxWidth: 380,
+          opacity: isDanger ? 0.15 : 1,
+          transition: "opacity 0.4s",
+          pointerEvents: isDanger ? "none" : "auto",
         }}
       >
         {/* Time inputs */}
@@ -477,20 +532,32 @@ export default function Timer() {
         </div>
       </div>
 
-      {/* Alarm message */}
+      {/* Reset button visible during alarm */}
       {isDanger && (
-        <div
+        <button
+          onClick={handleReset}
           style={{
-            fontSize: 15,
+            position: "absolute",
+            bottom: 32,
+            left: "50%",
+            transform: "translateX(-50%)",
+            padding: "14px 40px",
+            fontFamily: "'Syne', sans-serif",
+            fontSize: 14,
             fontWeight: 700,
-            letterSpacing: "0.05em",
+            letterSpacing: "0.1em",
+            textTransform: "uppercase",
+            borderRadius: 8,
+            border: "2px solid rgba(255,255,255,0.6)",
+            cursor: "pointer",
+            background: "transparent",
             color: "#fff",
-            marginTop: "1rem",
-            animation: "fadeIn 0.5s ease",
+            transition: "all 0.2s ease",
+            zIndex: 11,
           }}
         >
-          ⏰ Time is up!
-        </div>
+          Reset
+        </button>
       )}
     </div>
   );
