@@ -161,9 +161,9 @@ export default function Timer() {
         padding: "2rem 1rem",
         background: isDanger
           ? undefined
-          : "var(--color-background-tertiary, #72e7a5)",
-        backgroundColor: isDanger ? "#A32D2D" : "#72e7a5",
-        animation: isDanger ? "pulseRed 1s ease-in-out infinite" : "#72e7a5",
+          : "var(--color-background-tertiary, #f5f5f0)",
+        backgroundColor: isDanger ? "#A32D2D" : undefined,
+        animation: isDanger ? "pulseRed 1s ease-in-out infinite" : undefined,
         borderRadius: 12,
         fontFamily: "'Syne', 'Segoe UI', sans-serif",
         transition: "background 0.6s ease",
@@ -199,7 +199,7 @@ export default function Timer() {
           fontWeight: 900,
           letterSpacing: "0.2em",
           textTransform: "uppercase",
-          color: isDanger ? "#F7C1C1" : "var(--color-text-secondary, #ebf7ec)",
+          color: isDanger ? "#F7C1C1" : "var(--color-text-secondary, #888)",
           marginBottom: "2rem",
           transition: "color 0.4s",
         }}
@@ -229,7 +229,7 @@ export default function Timer() {
               style={{
                 fontFamily: "'Space Mono', monospace",
                 fontSize: 72,
-                fontWeight: 700,
+                fontWeight: 900,
                 color: isDanger
                   ? "rgba(255,255,255,0.4)"
                   : "var(--color-text-tertiary, #aaa)",
@@ -481,7 +481,7 @@ export default function Timer() {
       {isDanger && (
         <div
           style={{
-            fontSize: 60,
+            fontSize: 15,
             fontWeight: 700,
             letterSpacing: "0.05em",
             color: "#fff",
